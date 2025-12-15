@@ -1,0 +1,7 @@
+services:
+  gridlab:
+    build: .
+    container_name: jiuge_grid_lab
+    restart: always
+    ports:
+      - "8501:8501"

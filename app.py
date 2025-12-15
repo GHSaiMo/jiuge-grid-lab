@@ -499,6 +499,20 @@ def calc_benchmark(df, capital):
     return bench_series
 
 def plot_results(res_df, bench_series, strategy_name, symbol_code=None):
+    # 设置中文字体
+    import matplotlib.font_manager as fm
+    
+    # 获取字体路径
+    font_path = os.path.join(os.path.dirname(__file__), "SourceHanSansSC-Regular.otf")
+    
+    # 添加字体到管理器
+    fm.fontManager.addfont(font_path)
+    
+    # 设置全局字体为该字体的名称
+    prop = fm.FontProperties(fname=font_path)
+    plt.rcParams['font.family'] = prop.get_name()  # 自动获取该字体的内部名称
+    plt.rcParams['axes.unicode_minus'] = False  # 解决负号显示问题
+    
     strat_dd, strat_sharpe = calculate_metrics(res_df['strategy_value'])
     bench_dd, bench_sharpe = calculate_metrics(bench_series)
     final_val = res_df['strategy_value'].iloc[-1]
@@ -524,8 +538,8 @@ def plot_results(res_df, bench_series, strategy_name, symbol_code=None):
 
     # 图表1: 净值对比
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), gridspec_kw={'height_ratios': [1, 1]})
-    ax1.plot(res_df['date'], res_df['strategy_value'], label='Strategy', color='#d62728', linewidth=1.5)
-    ax1.plot(res_df['date'], bench_series, label='Benchmark (100% Full Pos)', color='gray', linestyle='--', alpha=0.6)
+    ax1.plot(res_df['date'], res_df['strategy_value'], label='策略净值', color='#d62728', linewidth=1.5)
+    ax1.plot(res_df['date'], bench_series, label='基准(满仓持有)', color='gray', linestyle='--', alpha=0.6)
   
     # 在图表上方添加基金/股票名称的总表头
     if symbol_code:
@@ -533,25 +547,28 @@ def plot_results(res_df, bench_series, strategy_name, symbol_code=None):
         st.markdown(f"<h3 style='text-align: center;'>{display_name} {strategy_name}策略回测结果</h3>", unsafe_allow_html=True)
 
     # 设置图表标题
-    chart_title = "Net Value Comparison"
+    chart_title = "净值对比"
     ax1.set_title(chart_title)
     ax1.legend()
     ax1.grid(True, alpha=0.2)
+    ax1.set_xlabel("日期")
+    ax1.set_ylabel("净值")
 
     # 图表2: 仓位/杠杆监控
     # 计算实际杠杆 = 持仓市值 / 净资产价值
     leverage_ratio = res_df['pos_val'] / res_df['strategy_value']
-    ax2.plot(res_df['date'], leverage_ratio * 100, label='Actual Position %', color='#1f77b4', linewidth=1)
-    ax2.axhline(y=100, color='gray', linestyle=':', alpha=0.5, label='100% Principal Line')
+    ax2.plot(res_df['date'], leverage_ratio * 100, label='实际仓位%', color='#1f77b4', linewidth=1)
+    ax2.axhline(y=100, color='gray', linestyle=':', alpha=0.5, label='100%本金线')
     
     # 融资区域: 当仓位 > 100% 时，在100%线和仓位线之间填充红色
-    ax2.fill_between(res_df['date'], 100, leverage_ratio * 100, where=(leverage_ratio>1), color='red', alpha=0.1, label='Leveraged Area')
+    ax2.fill_between(res_df['date'], 100, leverage_ratio * 100, where=(leverage_ratio>1), color='red', alpha=0.1, label='融资区域')
     
     # 现金管理区域: 当仓位 < 100% 时，在仓位线和100%线之间填充绿色
-    ax2.fill_between(res_df['date'], leverage_ratio * 100, 100, where=(leverage_ratio<=1), color='green', alpha=0.1, label='Cash Management Area')
+    ax2.fill_between(res_df['date'], leverage_ratio * 100, 100, where=(leverage_ratio<=1), color='green', alpha=0.1, label='现金管理区域')
     
-    ax2.set_title("Historical Position (%)")
-    ax2.set_ylabel("Position Ratio")
+    ax2.set_title("历史仓位变化(%)")
+    ax2.set_xlabel("日期")
+    ax2.set_ylabel("仓位比例")
     ax2.legend(loc='upper left')
     ax2.grid(True, alpha=0.2)
     
